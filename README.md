@@ -15,6 +15,7 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 - [x] **Retry Logic** - Automatic retry with exponential backoff for connection issues
 - [x] **Comprehensive Logging** - Detailed logs with timestamps and log levels
 - [x] **Error Handling** - Graceful error recovery and detailed error reporting
+- [x] **Automated Scheduling** - Built-in macOS launchd integration for periodic scraping (every 10 minutes)
 
 ## Requirements
 
@@ -166,6 +167,78 @@ If you need to re-authenticate (e.g., session expired, switching accounts):
    ```
 
 3. **Scan QR code** as described in the First Run section
+
+## Automated Scheduling
+
+The scraper can run automatically at regular intervals using macOS launchd.
+
+### Setup Scheduler (macOS)
+
+A launchd configuration is included for running the scraper every 10 minutes:
+
+```bash
+# Start the scheduler (runs every 10 minutes)
+./scheduler.sh start
+
+# Check scheduler status
+./scheduler.sh status
+
+# View scheduler logs
+./scheduler.sh logs
+
+# Stop the scheduler
+./scheduler.sh stop
+
+# Restart the scheduler
+./scheduler.sh restart
+
+# Run manually (bypass scheduler)
+./scheduler.sh run-now
+```
+
+### Scheduler Details
+
+- **Frequency:** Every 10 minutes (600 seconds)
+- **Location:** `~/Library/LaunchAgents/com.newsscraper.whatsapp.plist`
+- **Logs:**
+  - Standard output: `logs/launchd-stdout.log`
+  - Standard error: `logs/launchd-stderr.log`
+- **Mode:** Runs in headless mode automatically
+- **Auto-start:** Starts automatically when you log in
+
+### Verify Scheduler is Running
+
+```bash
+# Check if scheduler is loaded
+launchctl list | grep newsscraper
+
+# View recent output
+tail -f logs/launchd-stdout.log
+```
+
+### Troubleshooting Scheduler
+
+If the scheduler isn't working:
+
+1. **Check node path in plist:**
+   ```bash
+   which node  # Should match path in plist file
+   ```
+
+2. **View error logs:**
+   ```bash
+   ./scheduler.sh logs
+   ```
+
+3. **Manually test:**
+   ```bash
+   ./scheduler.sh run-now
+   ```
+
+4. **Restart scheduler:**
+   ```bash
+   ./scheduler.sh restart
+   ```
 
 ## Output Format
 
