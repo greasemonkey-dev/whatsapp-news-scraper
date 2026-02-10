@@ -30,6 +30,7 @@ async function scrapeMessages(chat, isFirstRun) {
       fetchedMessages = await chat.fetchMessages({ limit: Infinity });
       logger.info(`Fetched ${fetchedMessages.length} messages from full history`);
     } else {
+      // todo: what will happen if the gap is more than 100??
       logger.info('Incremental run - fetching recent messages');
       fetchedMessages = await chat.fetchMessages({ limit: 100 });
 
