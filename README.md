@@ -199,12 +199,34 @@ A launchd configuration is included for running the scraper every 10 minutes:
 ### Scheduler Details
 
 - **Frequency:** Every 10 minutes (600 seconds)
+- **Active Hours:** 6:00 AM - 9:00 PM (pauses overnight)
 - **Location:** `~/Library/LaunchAgents/com.newsscraper.whatsapp.plist`
 - **Logs:**
   - Standard output: `logs/launchd-stdout.log`
   - Standard error: `logs/launchd-stderr.log`
 - **Mode:** Runs in headless mode automatically
 - **Auto-start:** Starts automatically when you log in
+
+### Customizing Active Hours
+
+To change when the scraper runs, edit `run-with-schedule.sh`:
+
+```bash
+# Edit the active hours
+nano run-with-schedule.sh
+
+# Change these values (24-hour format):
+ACTIVE_START_HOUR=6   # Start at 6:00 AM
+ACTIVE_END_HOUR=21    # End at 9:00 PM
+
+# Restart scheduler to apply changes
+./scheduler.sh restart
+```
+
+**Example configurations:**
+- Business hours only: `ACTIVE_START_HOUR=9` and `ACTIVE_END_HOUR=18` (9 AM - 6 PM)
+- All day: `ACTIVE_START_HOUR=0` and `ACTIVE_END_HOUR=24` (24/7)
+- Morning only: `ACTIVE_START_HOUR=6` and `ACTIVE_END_HOUR=12` (6 AM - 12 PM)
 
 ### Verify Scheduler is Running
 
