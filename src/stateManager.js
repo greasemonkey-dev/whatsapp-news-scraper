@@ -7,7 +7,7 @@ class StateManager {
     this.defaultState = {
       chatId: null,
       chatName: null,
-      lastProcessedTimestamp: null,
+      lastProcessedTimestamp: 0,
       lastRunDate: null,
       totalMessagesProcessed: 0
     };
@@ -42,10 +42,11 @@ class StateManager {
       // Load existing state (or get default state)
       const currentState = await this.loadState();
 
-      // Merge updates with current state
+      // Merge updates with current state and auto-update lastRunDate
       const newState = {
         ...currentState,
-        ...updates
+        ...updates,
+        lastRunDate: new Date().toISOString()
       };
 
       // Save merged state

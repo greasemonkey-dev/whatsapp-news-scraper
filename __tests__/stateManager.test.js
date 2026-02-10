@@ -27,7 +27,7 @@ describe('StateManager', () => {
       expect(state).toEqual({
         chatId: null,
         chatName: null,
-        lastProcessedTimestamp: null,
+        lastProcessedTimestamp: 0,
         lastRunDate: null,
         totalMessagesProcessed: 0
       });
@@ -59,7 +59,7 @@ describe('StateManager', () => {
       expect(state).toEqual({
         chatId: null,
         chatName: null,
-        lastProcessedTimestamp: null,
+        lastProcessedTimestamp: 0,
         lastRunDate: null,
         totalMessagesProcessed: 0
       });
@@ -149,20 +149,19 @@ describe('StateManager', () => {
 
       const updates = {
         lastProcessedTimestamp: 1707667200000,
-        lastRunDate: '2024-02-11T12:00:00.000Z',
         totalMessagesProcessed: 75
       };
 
       await stateManager.updateState(updates);
 
       const updatedState = await stateManager.loadState();
-      expect(updatedState).toEqual({
-        chatId: '123456789@c.us',
-        chatName: 'News Chat',
-        lastProcessedTimestamp: 1707667200000,
-        lastRunDate: '2024-02-11T12:00:00.000Z',
-        totalMessagesProcessed: 75
-      });
+      expect(updatedState.chatId).toBe('123456789@c.us');
+      expect(updatedState.chatName).toBe('News Chat');
+      expect(updatedState.lastProcessedTimestamp).toBe(1707667200000);
+      expect(updatedState.totalMessagesProcessed).toBe(75);
+      // lastRunDate should be auto-updated to current timestamp
+      expect(updatedState.lastRunDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(new Date(updatedState.lastRunDate).getTime()).toBeGreaterThan(new Date(existingState.lastRunDate).getTime());
     });
 
     test('should merge with default state if file does not exist', async () => {
@@ -176,13 +175,11 @@ describe('StateManager', () => {
       await stateManager.updateState(updates);
 
       const updatedState = await stateManager.loadState();
-      expect(updatedState).toEqual({
-        chatId: '999888777@c.us',
-        chatName: 'New Chat',
-        lastProcessedTimestamp: 1707753600000,
-        lastRunDate: null,
-        totalMessagesProcessed: 10
-      });
+      expect(updatedState.chatId).toBe('999888777@c.us');
+      expect(updatedState.chatName).toBe('New Chat');
+      expect(updatedState.lastProcessedTimestamp).toBe(1707753600000);
+      expect(updatedState.totalMessagesProcessed).toBe(10);
+      expect(updatedState.lastRunDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
     test('should handle partial updates', async () => {
@@ -204,13 +201,13 @@ describe('StateManager', () => {
       await stateManager.updateState(updates);
 
       const updatedState = await stateManager.loadState();
-      expect(updatedState).toEqual({
-        chatId: '123456789@c.us',
-        chatName: 'News Chat',
-        lastProcessedTimestamp: 1707580800000,
-        lastRunDate: '2024-02-10T12:00:00.000Z',
-        totalMessagesProcessed: 100
-      });
+      expect(updatedState.chatId).toBe('123456789@c.us');
+      expect(updatedState.chatName).toBe('News Chat');
+      expect(updatedState.lastProcessedTimestamp).toBe(1707580800000);
+      expect(updatedState.totalMessagesProcessed).toBe(100);
+      // lastRunDate should be auto-updated even with partial updates
+      expect(updatedState.lastRunDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(new Date(updatedState.lastRunDate).getTime()).toBeGreaterThan(new Date(existingState.lastRunDate).getTime());
     });
   });
 });
