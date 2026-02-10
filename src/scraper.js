@@ -27,7 +27,32 @@ async function scrapeMessages(chat, isFirstRun) {
     // Determine fetch strategy
     if (isFirstRun || state.lastProcessedTimestamp === 0) {
       logger.info('First run detected - fetching all message history');
-      fetchedMessages = await chat.fetchMessages({ limit: Infinity });
+
+      // Fetch messages in batches to load full history
+      // WhatsApp Web only loads messages as they're requested
+      let allMessages = [];
+      let batchSize = 100;
+      let hasMore = true;
+      let batchCount = 0;
+
+      while (hasMore) {
+        const batch = await chat.fetchMessages({ limit: batchSize });
+        batchCount++;
+
+        if (batch.length === 0) {
+          hasMore = false;
+        } else {
+          allMessages.push(...batch);
+          logger.info(`Batch ${batchCount}: fetched ${batch.length} messages (total so far: ${allMessages.length})`);
+
+          // If we got fewer messages than requested, we've reached the end
+          if (batch.length < batchSize) {
+            hasMore = false;
+          }
+        }
+      }
+
+      fetchedMessages = allMessages;
       logger.info(`Fetched ${fetchedMessages.length} messages from full history`);
     } else {
       // todo: what will happen if the gap is more than 100??
