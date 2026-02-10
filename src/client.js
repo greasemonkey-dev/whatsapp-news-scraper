@@ -32,9 +32,9 @@ function createClient() {
     client.on('qr', (qr) => {
         logger.info('QR Code received. Please scan with WhatsApp:');
         console.log('\n');
-        // QR code will be displayed by whatsapp-web.js
+        // Display large QR code in terminal
         const qrcode = require('qrcode-terminal');
-        qrcode.generate(qr, { small: true });
+        qrcode.generate(qr, { small: false });
         console.log('\n');
     });
 
@@ -74,7 +74,14 @@ async function connectWithRetry(client) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             logger.info(`Connection attempt ${attempt}/${maxRetries}...`);
-            await client.initialize();
+
+            // Wait for the 'ready' event
+            await new Promise((resolve, reject) => {
+                client.once('ready', () => resolve());
+                client.once('auth_failure', (msg) => reject(new Error(`Auth failed: ${msg}`)));
+                client.initialize().catch(reject);
+            });
+
             logger.success('Connection successful!');
             return;
         } catch (error) {
