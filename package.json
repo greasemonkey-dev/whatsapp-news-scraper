@@ -1,0 +1,27 @@
+{
+  "name": "news-chat-scraper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": ["whatsapp", "scraper", "csv", "automation"],
+  "author": "",
+  "license": "ISC",
+  "description": "WhatsApp News Chat Scraper - Extracts messages from WhatsApp chats and exports to CSV",
+  "dependencies": {
+    "csv-writer": "^1.6.0",
+    "dotenv": "^17.2.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.6"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
