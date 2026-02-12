@@ -17,6 +17,11 @@ const config = {
     paths: {
         state: './data/state.json',
         output: './data/output/news_chat_data.csv'
+    },
+    googleSheets: {
+        enabled: !!process.env.GOOGLE_SHEET_ID,
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        credentialsPath: process.env.GOOGLE_CREDENTIALS_PATH || './credentials.json'
     }
 };
 

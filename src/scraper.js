@@ -5,6 +5,7 @@
 
 const { parseMessage } = require('./parser');
 const { exportToCSV } = require('./exporter');
+const SheetsExporter = require('./sheetsExporter');
 const StateManager = require('./stateManager');
 const logger = require('./logger');
 const config = require('./config');
@@ -160,10 +161,26 @@ async function scrape(chat) {
       };
     }
 
-    // Export to CSV
-    logger.info(`Exporting ${messages.length} messages to CSV`);
-    await exportToCSV(messages, config.paths.output, { append: !isFirstRun });
-    logger.success(`Successfully exported to ${config.paths.output}`);
+    // Export to Google Sheets or CSV
+    if (config.googleSheets.enabled) {
+      logger.info(`Exporting ${messages.length} messages to Google Sheets`);
+      const sheetsExporter = new SheetsExporter();
+
+      // Initialize sheet with headers on first run
+      if (isFirstRun) {
+        await sheetsExporter.initializeSheet();
+      }
+
+      await sheetsExporter.appendMessages(messages);
+
+      const sheetInfo = await sheetsExporter.getSpreadsheetInfo();
+      logger.success(`Successfully exported to Google Sheets: ${sheetInfo.title}`);
+      logger.info(`Sheet URL: ${sheetInfo.url}`);
+    } else {
+      logger.info(`Exporting ${messages.length} messages to CSV`);
+      await exportToCSV(messages, config.paths.output, { append: !isFirstRun });
+      logger.success(`Successfully exported to ${config.paths.output}`);
+    }
 
     // Return summary
     return {
