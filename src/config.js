@@ -3,6 +3,7 @@ require('dotenv').config();
 const config = {
     whatsapp: {
         chatName: process.env.CHAT_NAME || 'צ\'אט הכתבים N12',
+        chatId: process.env.CHAT_ID || '120363401113878063@g.us',
         headless: process.env.HEADLESS === 'true',
         dataPath: './data/.wwebjs_auth'
     },

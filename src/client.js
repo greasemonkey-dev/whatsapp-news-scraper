@@ -98,35 +98,49 @@ async function connectWithRetry(client) {
 }
 
 /**
- * Finds a chat by name with partial matching
+ * Finds a chat by ID or name with partial matching
  * @param {Client} client - WhatsApp client instance
  * @param {string} chatName - Name of chat to find
+ * @param {string} chatId - Optional chat ID for exact match
  * @returns {Promise<Object|null>} Chat object or null if not found
  */
-async function findChat(client, chatName) {
-    logger.info(`Searching for chat: "${chatName}"...`);
-
+async function findChat(client, chatName, chatId = '') {
     try {
         const chats = await client.getChats();
         logger.info(`Found ${chats.length} total chats`);
 
-        // Find chat by partial name match (case-insensitive)
+        // Try to find by chat ID first (if provided) - more reliable
+        if (chatId) {
+            logger.info(`Searching for chat by ID: "${chatId}"...`);
+            const chatById = chats.find(c => c.id._serialized === chatId);
+
+            if (chatById) {
+                logger.success(`Found chat by ID: "${chatById.name}" (${chatById.id._serialized})`);
+                return chatById;
+            } else {
+                logger.warn(`Chat ID "${chatId}" not found, falling back to name search...`);
+            }
+        }
+
+        // Fall back to name search
+        logger.info(`Searching for chat by name: "${chatName}"...`);
         const chat = chats.find(c =>
             c.name && c.name.toLowerCase().includes(chatName.toLowerCase())
         );
 
         if (chat) {
-            logger.success(`Found chat: "${chat.name}"`);
+            logger.success(`Found chat: "${chat.name}" (${chat.id._serialized})`);
             return chat;
         } else {
             logger.error(`Chat "${chatName}" not found`);
             logger.info('Available chats (first 10):');
 
-            // List first 10 available chats
+            // List first 10 available chats with their IDs
             const chatList = chats.slice(0, 10);
             chatList.forEach((c, index) => {
-                const chatInfo = c.name || c.id._serialized;
-                logger.info(`  ${index + 1}. ${chatInfo}`);
+                const chatInfo = c.name || 'Unknown';
+                const chatId = c.id._serialized;
+                logger.info(`  ${index + 1}. ${chatInfo} (ID: ${chatId})`);
             });
 
             return null;

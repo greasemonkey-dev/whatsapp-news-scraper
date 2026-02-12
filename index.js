@@ -23,6 +23,9 @@ async function main() {
         console.log('========================================\n');
         logger.info('Starting scraper application');
         logger.info(`Target chat: "${config.whatsapp.chatName}"`);
+        if (config.whatsapp.chatId) {
+            logger.info(`Chat ID: ${config.whatsapp.chatId}`);
+        }
         logger.info(`Headless mode: ${config.whatsapp.headless}`);
         logger.info(`Output file: ${config.paths.output}`);
         logger.info(`Max retries: ${config.scraping.maxRetries}`);
@@ -35,7 +38,7 @@ async function main() {
         await connectWithRetry(client);
 
         // Step 3: Find target chat
-        const chat = await findChat(client, config.whatsapp.chatName);
+        const chat = await findChat(client, config.whatsapp.chatName, config.whatsapp.chatId);
 
         // Step 4: Verify chat was found
         if (!chat) {
