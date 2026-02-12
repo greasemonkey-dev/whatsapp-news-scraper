@@ -7,8 +7,10 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 - [x] **Automated WhatsApp Integration** - Connects to WhatsApp Web using `whatsapp-web.js`
 - [x] **QR Code Authentication** - First-run QR code authentication with persistent session management
 - [x] **Headless Mode Support** - Run with or without browser UI after initial authentication
+- [x] **Chat ID & Name Matching** - Reliable chat identification using ID or name (partial, case-insensitive)
 - [x] **Intelligent Message Parsing** - Extracts reporter names, content, timestamps, and links
 - [x] **CSV Export** - Structured data export with proper UTF-8 encoding for Hebrew text
+- [x] **Google Sheets Export** - Optional direct export to Google Sheets
 - [x] **Incremental Updates** - Only exports new messages on subsequent runs
 - [x] **State Persistence** - Tracks last processed message to avoid duplicates
 - [x] **Media Detection** - Identifies messages with images, videos, and documents
@@ -16,6 +18,7 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 - [x] **Comprehensive Logging** - Detailed logs with timestamps and log levels
 - [x] **Error Handling** - Graceful error recovery and detailed error reporting
 - [x] **Automated Scheduling** - Built-in macOS launchd integration for periodic scraping (every 10 minutes)
+- [x] **Cross-Platform** - Works on macOS, Linux, and Windows (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md))
 
 ## Requirements
 
@@ -29,8 +32,8 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/username/news-chat-scraper.git
-   cd news-chat-scraper
+   git clone https://github.com/greasemonkey-dev/whatsapp-news-scraper.git
+   cd whatsapp-news-scraper
    ```
 
 2. **Install dependencies:**
@@ -38,15 +41,17 @@ A Node.js automation tool for extracting messages from WhatsApp group chats and 
    npm install
    ```
 
-3. **Configure environment variables:**
-   ```bash
-   cp .env.example .env
-   ```
+3. **Configure your chat (optional - works out of the box for N12 chat):**
 
-4. **Edit `.env` file with your settings:**
+   The `.env` file is included with default configuration for N12 chat. If you need a different chat:
+
    ```bash
    nano .env  # or use your preferred text editor
    ```
+
+   Update the `CHAT_NAME` or `CHAT_ID` for your target group.
+
+**Windows Users:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for Windows-specific setup and troubleshooting.
 
 ## Configuration
 
@@ -54,26 +59,51 @@ The `.env` file contains all configuration options:
 
 ```env
 # WhatsApp Configuration
-CHAT_NAME="צ'אט הכתבים N12"    # Name of the WhatsApp chat to scrape
-HEADLESS=false                   # false = show browser, true = hidden
+CHAT_NAME="N12 צ'אט הכתבים"                    # Name of the WhatsApp chat to scrape
+CHAT_ID="120363401113878063@g.us"              # Chat ID (more reliable than name)
+HEADLESS=true                                   # false = show browser, true = hidden
 
 # Scraping Configuration
-MAX_RETRIES=3                    # Number of connection retry attempts
-RETRY_DELAY=30000                # Delay between retries (milliseconds)
+MAX_RETRIES=3                                   # Number of connection retry attempts
+RETRY_DELAY=30000                               # Delay between retries (milliseconds)
 
 # Logging Configuration
-LOG_LEVEL="info"                 # Logging level: debug, info, warn, error
+LOG_LEVEL="info"                                # Logging level: debug, info, warn, error
+
+# Google Sheets Configuration (optional)
+GOOGLE_SHEET_ID=""                              # Google Sheet ID for direct export
+GOOGLE_CREDENTIALS_PATH="./credentials.json"    # Path to Google credentials
 ```
 
 ### Configuration Options Explained
 
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
-| `CHAT_NAME` | Exact name of WhatsApp chat | Required | Any string |
-| `HEADLESS` | Hide browser window | `false` | `true`, `false` |
+| `CHAT_NAME` | Name of WhatsApp chat (partial match) | `N12 צ'אט הכתבים` | Any string |
+| `CHAT_ID` | WhatsApp chat ID (exact match, more reliable) | `120363401113878063@g.us` | Chat ID string |
+| `HEADLESS` | Hide browser window | `true` | `true`, `false` |
 | `MAX_RETRIES` | Connection retry attempts | `3` | Any integer |
 | `RETRY_DELAY` | Milliseconds between retries | `30000` | Any integer |
 | `LOG_LEVEL` | Logging verbosity | `info` | `debug`, `info`, `warn`, `error` |
+| `GOOGLE_SHEET_ID` | Google Sheet ID (optional) | Empty | Sheet ID string |
+| `GOOGLE_CREDENTIALS_PATH` | Path to credentials file | `./credentials.json` | File path |
+
+### Chat Identification: ID vs Name
+
+**CHAT_ID (Recommended):**
+- ✅ Exact match - more reliable
+- ✅ Never changes even if group name changes
+- ✅ Faster lookup
+- 📝 Format: `120363401113878063@g.us`
+
+**CHAT_NAME (Alternative):**
+- ✅ Easier to remember
+- ✅ Partial, case-insensitive matching
+- ⚠️ May break if group name changes
+- 📝 Format: `N12 צ'אט הכתבים` or just `N12`
+
+**How to get Chat ID:**
+Run the scraper once, and it will log: `Found chat: "Name" (ID: xxx@g.us)`
 
 ## Usage
 
@@ -88,7 +118,8 @@ On the first run, the scraper needs to authenticate with WhatsApp:
 
 2. **Start the scraper:**
    ```bash
-   npm start
+   npm start              # Standard mode (deprecation warnings suppressed)
+   npm run start:verbose  # Verbose mode (shows all warnings)
    ```
 
 3. **Scan QR code:**
@@ -356,9 +387,10 @@ The scraper follows a 7-step workflow:
 - Implements retry logic with exponential backoff
 
 ### 4. Chat Discovery
-- Searches all available chats for matching `CHAT_NAME`
-- Performs case-insensitive, whitespace-normalized matching
-- Throws error if chat not found
+- **Priority 1:** Search by `CHAT_ID` (exact match, most reliable)
+- **Priority 2:** Search by `CHAT_NAME` (partial, case-insensitive match)
+- Lists available chats with IDs if target not found
+- Throws error if chat not found by either method
 
 ### 5. Message Retrieval
 - Fetches all messages from the target chat
@@ -484,26 +516,42 @@ Tests:       45 passed, 45 total
 **Problem:** Error message "Chat not found"
 
 **Solutions:**
-1. **Verify exact chat name:**
-   - Open WhatsApp Web manually
-   - Copy the exact chat name (including special characters)
-   - Update `CHAT_NAME` in `.env` with exact match
 
-2. **Check for name variations:**
-   ```env
-   # Try different formats
-   CHAT_NAME="צ'אט הכתבים N12"
-   CHAT_NAME="Chat Name"
+1. **Use Chat ID instead (most reliable):**
+
+   Run the scraper once with `HEADLESS=false` to see available chats:
+   ```bash
+   npm start
    ```
 
-3. **Enable debug logging:**
+   It will list available chats with their IDs:
+   ```
+   Available chats (first 10):
+   1. N12 צ'אט הכתבים (ID: 120363401113878063@g.us)
+   2. Other Group (ID: 987654321@g.us)
+   ```
+
+   Copy the ID and add to `.env`:
+   ```env
+   CHAT_ID="120363401113878063@g.us"
+   ```
+
+2. **Use partial name matching:**
+   ```env
+   # Try shorter, partial matches (case-insensitive)
+   CHAT_NAME="N12"              # Matches "N12 צ'אט הכתבים"
+   CHAT_NAME="כתבים"           # Matches any chat with "כתבים"
+   ```
+
+3. **Verify exact chat name:**
+   - Open WhatsApp Web manually
+   - Copy the exact chat name (including special characters)
+   - Update `CHAT_NAME` in `.env`
+
+4. **Enable debug logging:**
    ```env
    LOG_LEVEL="debug"
    ```
-
-4. **List all available chats:**
-   - Temporarily modify `src/client.js` to log all chat names
-   - Or check WhatsApp Web directly
 
 ### Session Expired
 
