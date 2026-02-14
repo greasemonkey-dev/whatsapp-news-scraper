@@ -58,7 +58,17 @@ async function scrapeMessages(chat, isFirstRun) {
     } else {
       // todo: what will happen if the gap is more than 100??
       logger.info('Incremental run - fetching recent messages');
-      fetchedMessages = await chat.fetchMessages({ limit: 100 });
+      fetchedMessages = await chat.fetchMessages({ limit: 200 }); // Increased from 100 to catch more messages
+
+      // Debug: Show timestamp range of fetched messages
+      if (fetchedMessages.length > 0) {
+        const timestamps = fetchedMessages.map(m => m.timestamp).sort((a, b) => a - b);
+        const oldestDate = new Date(timestamps[0] * 1000).toISOString();
+        const newestDate = new Date(timestamps[timestamps.length - 1] * 1000).toISOString();
+        const lastProcessedDate = new Date(state.lastProcessedTimestamp * 1000).toISOString();
+        logger.info(`Message timestamp range: ${oldestDate} to ${newestDate}`);
+        logger.info(`Last processed: ${lastProcessedDate}`);
+      }
 
       // Filter messages by timestamp
       const beforeFilter = fetchedMessages.length;
