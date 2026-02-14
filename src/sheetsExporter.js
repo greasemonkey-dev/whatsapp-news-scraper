@@ -17,6 +17,7 @@ class SheetsExporter {
     this.sheets = null;
     this.spreadsheetId = process.env.GOOGLE_SHEET_ID;
     this.credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH || './credentials.json';
+    this.sheetName = null; // Will be auto-detected
   }
 
   /**
@@ -47,9 +48,36 @@ class SheetsExporter {
       // Create sheets client
       this.sheets = google.sheets({ version: 'v4', auth: this.auth });
 
+      // Auto-detect first sheet name
+      await this.detectSheetName();
+
       logger.success('Google Sheets API initialized successfully');
+      logger.info(`Using sheet tab: "${this.sheetName}"`);
     } catch (error) {
       logger.error(`Failed to initialize Google Sheets API: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Auto-detect the first sheet name in the spreadsheet
+   * @returns {Promise<void>}
+   */
+  async detectSheetName() {
+    try {
+      const response = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId
+      });
+
+      if (!response.data.sheets || response.data.sheets.length === 0) {
+        throw new Error('No sheets found in spreadsheet');
+      }
+
+      // Use the first sheet
+      this.sheetName = response.data.sheets[0].properties.title;
+      logger.info(`Auto-detected sheet name: "${this.sheetName}"`);
+    } catch (error) {
+      logger.error(`Failed to detect sheet name: ${error.message}`);
       throw error;
     }
   }
@@ -84,7 +112,7 @@ class SheetsExporter {
       // Append to sheet
       const response = await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'Sheet1!A:G', // Adjust sheet name if needed
+        range: `${this.sheetName}!A:G`,
         valueInputOption: 'RAW',
         insertDataOption: 'INSERT_ROWS',
         resource: {
@@ -113,7 +141,7 @@ class SheetsExporter {
       // Check if sheet has data
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'Sheet1!A1:G1'
+        range: `${this.sheetName}!A1:G1`
       });
 
       // If first row is empty, add headers
@@ -126,7 +154,7 @@ class SheetsExporter {
 
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
-          range: 'Sheet1!A1:G1',
+          range: `${this.sheetName}!A1:G1`,
           valueInputOption: 'RAW',
           resource: {
             values: headers
